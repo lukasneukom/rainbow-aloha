@@ -2,12 +2,12 @@ Type `@` in the Obsidian editor to open an autocomplete menu with options such a
 
 Rainbow Aloha is the international companion of [Aloha](https://github.com/kepano/aloha) by kepano, which covers English. This plugin covers:
 
-| Language | Today | Tomorrow | Yesterday |
-| --- | --- | --- | --- |
-| Español | Hoy | Mañana | Ayer |
-| Italiano | Oggi | Domani | Ieri |
-| Français | Aujourd'hui | Demain | Hier |
-| Deutsch | Heute | Morgen | Gestern |
+| Language | Today | Tomorrow | Yesterday | Day after tomorrow | Day before yesterday |
+| --- | --- | --- | --- | --- | --- |
+| Español | Hoy | Mañana | Ayer | – | – |
+| Italiano | Oggi | Domani | Ieri | – | – |
+| Français | Aujourd'hui | Demain | Hier | – | – |
+| Deutsch | Heute | Morgen | Gestern | Übermorgen | Vorgestern |
 
 ## Language
 
