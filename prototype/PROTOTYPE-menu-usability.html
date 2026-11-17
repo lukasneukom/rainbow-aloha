@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PROTOTYPE: Menü-Usability</title>
+<style>
+	:root { --accent: #7c3aed; --bg: #fafaf9; --fg: #1c1917; --muted: #78716c; --line: #e7e5e4; --card: #fff; }
+	@media (prefers-color-scheme: dark) {
+		:root { --bg: #1c1917; --fg: #fafaf9; --muted: #a8a29e; --line: #44403c; --card: #292524; }
+	}
+	* { box-sizing: border-box; }
+	body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, sans-serif; }
+	main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+	h1 { font-size: 1.5rem; margin: 0 0 4px; }
+	h2 { font-size: 1rem; margin: 32px 0 8px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+	.banner { display: inline-block; background: var(--accent); color: #fff; font-size: .75rem; padding: 2px 8px; border-radius: 4px; margin-bottom: 8px; }
+	.question { border-left: 3px solid var(--accent); padding: 4px 12px; margin: 16px 0; }
+	.card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+	.typed { font: 1.1rem ui-monospace, monospace; margin-bottom: 12px; }
+	.typed b { color: var(--accent); }
+	ul.menu { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+	ul.menu li { padding: 8px 12px; border-bottom: 1px solid var(--line); }
+	ul.menu li:last-child { border-bottom: 0; }
+	ul.menu li.first { background: color-mix(in srgb, var(--accent) 15%, transparent); font-weight: 600; }
+	ul.menu li.empty { color: var(--muted); font-style: italic; }
+	dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 16px 0 0; }
+	dt { color: var(--muted); }
+	dd { margin: 0; }
+	.changed { color: var(--accent); font-weight: 600; }
+	button, select, input { font: inherit; }
+	button { background: var(--card); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+	button:hover { border-color: var(--accent); }
+	button.step { display: block; width: 100%; text-align: left; margin-top: 8px; }
+	button.done { opacity: .5; }
+	.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+	input[type=text] { flex: 1; min-width: 140px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); color: var(--fg); }
+	.tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+	.tabs button[aria-selected=true] { background: var(--accent); color: #fff; border-color: var(--accent); }
+	.note { color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<main>
+	<span class="banner">PROTOTYPE, wegwerfen</span>
+	<h1>Rainbow Aloha: fühlt sich das Menü richtig an?</h1>
+
+	<div class="question">
+		<strong>Frage:</strong> Ist es benutzerfreundlich, dass die Wörter in der Reihenfolge
+		Heute, Morgen, Gestern, Übermorgen, Vorgestern erscheinen und dass nur am
+		<em>Wortanfang</em> gesucht wird? Spiele es durch, besonders die Fälle, in denen jemand
+		«Übermorgen» meint, aber etwas anderes tippt.
+		<div class="note">Annahme: Nur Deutsch hat die zwei neuen Wörter. Die anderen Sprachen zeigen drei.</div>
+	</div>
+
+	<h2>Aktueller Zustand</h2>
+	<div class="card" id="state"></div>
+
+	<h2>Frei ausprobieren</h2>
+	<div class="card">
+		<div class="row">
+			<label>Sprache
+				<select id="lang">
+					<option value="de">Deutsch</option>
+					<option value="fr">Français</option>
+					<option value="es">Español</option>
+					<option value="it">Italiano</option>
+				</select>
+			</label>
+			<label>Suche
+				<select id="mode">
+					<option value="prefix">Wortanfang (geplant)</option>
+					<option value="contains">irgendwo im Wort (Alternative)</option>
+				</select>
+			</label>
+		</div>
+		<div class="row">
+			<span class="typed">@</span>
+			<input type="text" id="query" placeholder="hier nach dem @ tippen" autocomplete="off" spellcheck="false">
+		</div>
+	</div>
+
+	<h2>Geführte Szenarien</h2>
+	<div class="tabs" id="tabs" role="tablist"></div>
+	<div class="card" id="scenario"></div>
+</main>
+
+<script>
+// ---------------------------------------------------------------------------
+// Portable Logik (rein, ohne DOM). Spiegelt src/locales/index.ts und
+// src/suggest.ts, plus die zwei geplanten Wörter.
+// ---------------------------------------------------------------------------
+const LOCALES = {
+	de: { name: "Deutsch", today: "Heute", tomorrow: "Morgen", yesterday: "Gestern",
+	      dayAfterTomorrow: "Übermorgen", dayBeforeYesterday: "Vorgestern" },
+	fr: { name: "Français", today: "Aujourd'hui", tomorrow: "Demain", yesterday: "Hier" },
+	es: { name: "Español", today: "Hoy", tomorrow: "Mañana", yesterday: "Ayer" },
+	it: { name: "Italiano", today: "Oggi", tomorrow: "Domani", yesterday: "Ieri" },
+};
+
+function normalize(text) {
+	return text.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/’/g, "'").toLowerCase();
+}
+
+// Reihenfolge wie geplant: bekannte drei zuerst, neue am Ende. Fehlende entfallen.
+function getWords(lang) {
+	const l = LOCALES[lang];
+	return [
+		{ label: l.today, offset: 0 },
+		{ label: l.tomorrow, offset: 1 },
+		{ label: l.yesterday, offset: -1 },
+		l.dayAfterTomorrow && { label: l.dayAfterTomorrow, offset: 2 },
+		l.dayBeforeYesterday && { label: l.dayBeforeYesterday, offset: -2 },
+	].filter(Boolean);
+}
+
+function getSuggestions(lang, query, mode) {
+	const q = normalize(query);
+	return getWords(lang).filter((w) => {
+		const n = normalize(w.label);
+		return mode === "contains" ? n.includes(q) : n.startsWith(q);
+	});
+}
+
+function formatOffset(offset) {
+	const d = new Date();
+	d.setDate(d.getDate() + offset);
+	const p = (n) => String(n).padStart(2, "0");
+	return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+// Reducer über dem Zustand {lang, mode, query}
+function reduce(state, action) {
+	switch (action.type) {
+		case "lang": return { ...state, lang: action.value };
+		case "mode": return { ...state, mode: action.value };
+		case "query": return { ...state, query: action.value };
+		default: return state;
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Wegwerf-Seite
+// ---------------------------------------------------------------------------
+const INITIAL = { lang: "de", mode: "prefix", query: "" };
+let state = { ...INITIAL };
+let prev = { ...INITIAL };
+
+const SCENARIOS = [
+	{
+		title: "Nur @",
+		text: "Du tippst nur @. Achte auf Reihenfolge und darauf, was Enter wählt.",
+		steps: [{ label: "@ tippen (leere Suche)", action: { type: "query", value: "" } }],
+	},
+	{
+		title: "«morgen» tippen",
+		text: "Du willst Übermorgen, tippst aber «morgen». Wird das Wort gefunden? Ohne Hinweis im Menü merkst du nicht, dass es das Wort gibt.",
+		steps: [
+			{ label: "tippe «m»", action: { type: "query", value: "m" } },
+			{ label: "tippe «morgen»", action: { type: "query", value: "morgen" } },
+			{ label: "Alternative: Suche «irgendwo im Wort» einschalten", action: { type: "mode", value: "contains" } },
+			{ label: "Zurück auf «Wortanfang»", action: { type: "mode", value: "prefix" } },
+		],
+	},
+	{
+		title: "Übermorgen finden",
+		text: "Der Weg, der funktioniert: mit Ü oder ohne Akzent beginnen.",
+		steps: [
+			{ label: "tippe «ü»", action: { type: "query", value: "ü" } },
+			{ label: "tippe «ub» (ohne Umlaut)", action: { type: "query", value: "ub" } },
+			{ label: "tippe «uebermorgen» (ue statt ü)", action: { type: "query", value: "uebermorgen" } },
+		],
+	},
+	{
+		title: "Vorgestern",
+		text: "«gestern» zeigt nur Gestern. Wie stark stört dich das?",
+		steps: [
+			{ label: "tippe «v»", action: { type: "query", value: "v" } },
+			{ label: "tippe «gestern»", action: { type: "query", value: "gestern" } },
+			{ label: "Alternative: «irgendwo im Wort» einschalten", action: { type: "mode", value: "contains" } },
+		],
+	},
+	{
+		title: "Andere Sprache",
+		text: "Französisch hat die neuen Wörter nicht. Das Menü zeigt drei, kein Sprachmix. Merkst du als Nutzer, dass etwas fehlt?",
+		steps: [
+			{ label: "Sprache auf Français", action: { type: "lang", value: "fr" } },
+			{ label: "tippe «apr» (après-demain)", action: { type: "query", value: "apr" } },
+		],
+	},
+];
+
+let currentScenario = 0;
+let stepsDone = new Set();
+
+function dispatch(action) {
+	prev = state;
+	state = reduce(state, action);
+	render();
+}
+
+function startScenario(i) {
+	currentScenario = i;
+	stepsDone = new Set();
+	prev = state = { ...INITIAL };
+	render();
+}
+
+function esc(s) { return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
+
+function render() {
+	const sugg = getSuggestions(state.lang, state.query, state.mode);
+	const changed = (k) => (state[k] !== prev[k] ? " changed" : "");
+	const first = sugg[0];
+
+	document.getElementById("state").innerHTML = `
+		<div class="typed">@<b>${esc(state.query)}</b></div>
+		<ul class="menu">
+			${sugg.length
+				? sugg.map((w, i) => `<li class="${i === 0 ? "first" : ""}">${esc(w.label)}</li>`).join("")
+				: `<li class="empty">Keine Treffer. Das Menü bleibt leer.</li>`}
+		</ul>
+		<dl>
+			<dt>Sprache</dt><dd class="${changed("lang").trim()}">${LOCALES[state.lang].name}</dd>
+			<dt>Suche</dt><dd class="${changed("mode").trim()}">${state.mode === "prefix" ? "am Wortanfang (geplant)" : "irgendwo im Wort (Alternative)"}</dd>
+			<dt>Einträge im Menü</dt><dd>${sugg.length}</dd>
+			<dt>Enter wählt</dt><dd>${first ? `«${esc(first.label)}» → <code>[[${formatOffset(first.offset)}]]</code>` : "nichts"}</dd>
+		</dl>`;
+
+	document.getElementById("lang").value = state.lang;
+	document.getElementById("mode").value = state.mode;
+	const q = document.getElementById("query");
+	if (q.value !== state.query) q.value = state.query;
+
+	document.getElementById("tabs").innerHTML = SCENARIOS.map((s, i) =>
+		`<button role="tab" aria-selected="${i === currentScenario}" data-tab="${i}">${esc(s.title)}</button>`).join("");
+
+	const sc = SCENARIOS[currentScenario];
+	document.getElementById("scenario").innerHTML = `
+		<p>${esc(sc.text)}</p>
+		<button data-reset>Szenario neu starten</button>
+		${sc.steps.map((s, i) =>
+			`<button class="step${stepsDone.has(i) ? " done" : ""}" data-step="${i}">${i + 1}. ${esc(s.label)}</button>`).join("")}`;
+}
+
+document.getElementById("lang").addEventListener("change", (e) => dispatch({ type: "lang", value: e.target.value }));
+document.getElementById("mode").addEventListener("change", (e) => dispatch({ type: "mode", value: e.target.value }));
+document.getElementById("query").addEventListener("input", (e) => dispatch({ type: "query", value: e.target.value }));
+document.getElementById("tabs").addEventListener("click", (e) => {
+	const t = e.target.closest("[data-tab]");
+	if (t) startScenario(Number(t.dataset.tab));
+});
+document.getElementById("scenario").addEventListener("click", (e) => {
+	if (e.target.closest("[data-reset]")) return startScenario(currentScenario);
+	const b = e.target.closest("[data-step]");
+	if (!b) return;
+	const i = Number(b.dataset.step);
+	stepsDone.add(i);
+	dispatch(SCENARIOS[currentScenario].steps[i].action);
+});
+
+startScenario(0);
+</script>
+</body>
+</html>
