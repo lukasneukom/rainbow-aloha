@@ -1,6 +1,6 @@
 # Contributing
 
-The easiest way to contribute is to add a language. A language is one small JSON file with four words, and you do not need to write any logic.
+The easiest way to contribute is to add a language. A language is one small JSON file with a handful of words, and you do not need to write any logic.
 
 Rainbow Aloha does not cover English, because the original [Aloha](https://github.com/kepano/aloha) already does.
 
@@ -20,7 +20,8 @@ Rainbow Aloha does not cover English, because the original [Aloha](https://githu
    ```
 
    - `name` is the name of the language written in that language. It is shown in the settings.
-   - `today`, `tomorrow` and `yesterday` are the three words shown in the menu.
+   - `today`, `tomorrow` and `yesterday` are required.
+   - `dayAfterTomorrow` and `dayBeforeYesterday` are optional (see `de.json`). Leave them out if your language has no single word for them. The menu then shows only the three required words and never falls back to another language.
 
 3. **Register it.** Open `src/locales/index.ts`, add an import at the top and add the language to `LOCALES`:
 
@@ -48,7 +49,7 @@ Rainbow Aloha does not cover English, because the original [Aloha](https://githu
 - **One word each, no spaces.** The menu closes as soon as you type a space, so a label like "Pasado mañana" would never match. Use a single word. Apostrophes and hyphens are fine, as in "Aujourd'hui".
 - **Capitalize like a menu item.** Start with a capital letter, as in the other languages.
 - **Accents and capitals are ignored when searching,** so you do not need to add variants without accents.
-- Keep to the three words. The plugin intentionally does only today, tomorrow and yesterday, like the original.
+- Search matches the start of the word only, so `@morgen` finds "Morgen" but not "Übermorgen". Do not add extra spellings such as "ue" for "ü".
 
 ## Development
 

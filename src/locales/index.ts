@@ -5,7 +5,7 @@ import it from "./it.json";
 
 export interface DateWord {
 	label: string;
-	/** Days from today: 0 = today, 1 = tomorrow, -1 = yesterday. */
+	/** Days from today: 0 = today, 1 = tomorrow, -1 = yesterday, 2 and -2 = day after tomorrow and before yesterday. */
 	offset: number;
 }
 
@@ -15,6 +15,10 @@ export interface LocaleFile {
 	today: string;
 	tomorrow: string;
 	yesterday: string;
+	/** Optional: two days from now. Omit it if the language has no single word for it. */
+	dayAfterTomorrow?: string;
+	/** Optional: two days ago. Omit it if the language has no single word for it. */
+	dayBeforeYesterday?: string;
 }
 
 /**
@@ -38,11 +42,15 @@ export function isLang(value: string): value is Lang {
 
 export function getWords(lang: Lang): DateWord[] {
 	const locale: LocaleFile = LOCALES[lang];
-	return [
+	const words: DateWord[] = [
 		{ label: locale.today, offset: 0 },
 		{ label: locale.tomorrow, offset: 1 },
 		{ label: locale.yesterday, offset: -1 },
 	];
+	// Optional words come last and are skipped when a language lacks them.
+	if (locale.dayAfterTomorrow) words.push({ label: locale.dayAfterTomorrow, offset: 2 });
+	if (locale.dayBeforeYesterday) words.push({ label: locale.dayBeforeYesterday, offset: -2 });
+	return words;
 }
 
 export function resolveLanguage(setting: Lang | "auto", obsidianLang: string): Lang {

@@ -2,5 +2,7 @@
 	"name": "Deutsch",
 	"today": "Heute",
 	"tomorrow": "Morgen",
-	"yesterday": "Gestern"
+	"yesterday": "Gestern",
+	"dayAfterTomorrow": "Übermorgen",
+	"dayBeforeYesterday": "Vorgestern"
 }

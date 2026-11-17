@@ -1,4 +1,4 @@
-Type `@` in the Obsidian editor to open an autocomplete menu with three options: today, tomorrow and yesterday. Choosing one inserts the date as a link, e.g. `[[2026-07-05]]`.
+Type `@` in the Obsidian editor to open an autocomplete menu with options such as today, tomorrow and yesterday. Some languages also offer the day after tomorrow and the day before yesterday. Choosing one inserts the date as a link, e.g. `[[2026-07-05]]`.
 
 Rainbow Aloha is the international companion of [Aloha](https://github.com/kepano/aloha) by kepano, which covers English. This plugin covers:
 
@@ -17,7 +17,7 @@ Search ignores accents and capital letters, so `@manana` finds "Mañana".
 
 ## Add a language
 
-A language is a small JSON file with four words. If yours is missing, see [CONTRIBUTING.md](CONTRIBUTING.md) for the steps.
+A language is a small JSON file with a handful of words. If yours is missing, see [CONTRIBUTING.md](CONTRIBUTING.md) for the steps.
 
 ## Development
 
